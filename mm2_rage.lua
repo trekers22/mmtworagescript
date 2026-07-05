@@ -1,9 +1,11 @@
 --[[
-    MM2 RAGE HUB – Mobile Optimized
-    Features: ESP, Auto Shoot, Silent Aim, Kill All, Teleports, Fly, Noclip, God Mode, SpinBot, Auto Farm, Auto Collect Gun
+    MM2 RAGE HUB V2 – Professional Grade
+    Features: ESP (Murderer/Sheriff/Innocent/Gun), Silent Aim, Auto Shoot, Kill All, 
+    Teleports, Auto Farm, Noclip, Fly, Infinite Jump, God Mode, SpinBot, Auto Collect Gun
     Load: loadstring(game:HttpGet("https://raw.githubusercontent.com/trekers22/mmtworagescript/main/mm2_rage.lua"))()
 --]]
 
+-- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -21,80 +23,7 @@ local isSheriff = false
 local espObjects = {}
 local flyEnabled = false
 local spinAngle = 0
-
--- ===== MOBILE GUI =====
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "MM2RageHub"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") or game:GetService("CoreGui")
-
--- Main frame – bigger for touch
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 350, 0, 520)  -- wider
-frame.Position = UDim2.new(0.5, -175, 0.1, 0)
-frame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
-frame.BackgroundTransparency = 0.1
-frame.BorderSizePixel = 3
-frame.BorderColor3 = Color3.fromRGB(255, 80, 80)
-frame.Active = true
-frame.Draggable = true
-frame.Parent = screenGui
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 40)
-title.Position = UDim2.new(0, 0, 0, 0)
-title.BackgroundTransparency = 1
-title.Text = "🔥 RAGE HUB MOBILE 🔥"
-title.TextColor3 = Color3.fromRGB(255, 200, 50)
-title.TextScaled = true
-title.Font = Enum.Font.GothamBold
-title.Parent = frame
-
--- Scrollable container (simulate scrolling with a scrolling frame)
-local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, 0, 1, -40)
-scrollFrame.Position = UDim2.new(0, 0, 0, 40)
-scrollFrame.BackgroundTransparency = 1
-scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 700)  -- adjust as needed
-scrollFrame.ScrollBarThickness = 8
-scrollFrame.Parent = frame
-
-local yPos = 0
-local function AddButton(text, callback, color)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.9, 0, 0, 40)
-    btn.Position = UDim2.new(0.05, 0, 0, yPos)
-    btn.BackgroundColor3 = color or Color3.fromRGB(60, 60, 90)
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextScaled = true
-    btn.Font = Enum.Font.Gotham
-    btn.Parent = scrollFrame
-    btn.MouseButton1Click:Connect(callback)
-    yPos = yPos + 45
-    return btn
-end
-
-local function AddToggle(text, initial, callback)
-    local state = initial
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.9, 0, 0, 40)
-    btn.Position = UDim2.new(0.05, 0, 0, yPos)
-    btn.BackgroundColor3 = state and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(60, 60, 60)
-    btn.Text = text .. (state and " [ON]" or " [OFF]")
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextScaled = true
-    btn.Font = Enum.Font.Gotham
-    btn.Parent = scrollFrame
-    btn.MouseButton1Click:Connect(function()
-        state = not state
-        btn.BackgroundColor3 = state and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(60, 60, 60)
-        btn.Text = text .. (state and " [ON]" or " [OFF]")
-        callback(state)
-    end)
-    yPos = yPos + 45
-    return btn
-end
+local farmCooldown = 0.1
 
 -- ===== TOGGLES =====
 local toggles = {
@@ -114,51 +43,167 @@ local toggles = {
     AutoCollectGun = false,
 }
 
--- Add toggles
-AddToggle("ESP Murderer", false, function(v) toggles.ESPMurderer = v end)
-AddToggle("ESP Sheriff", false, function(v) toggles.ESPSheriff = v end)
-AddToggle("ESP Innocent", false, function(v) toggles.ESPInnocent = v end)
-AddToggle("ESP Gun Drop", false, function(v) toggles.ESPGun = v end)
-AddToggle("Auto Shoot Murderer", false, function(v) toggles.AutoShoot = v end)
-AddToggle("Silent Aim", false, function(v) toggles.SilentAim = v end)
-AddToggle("Kill All (as Murderer)", false, function(v) toggles.KillAll = v end)
-AddToggle("Auto Farm Coins", false, function(v) toggles.AutoFarm = v end)
-AddToggle("Noclip", false, function(v) toggles.Noclip = v end)
-AddToggle("Fly", false, function(v) toggles.Fly = v end)
-AddToggle("Infinite Jump", false, function(v) toggles.InfiniteJump = v end)
-AddToggle("God Mode", false, function(v) toggles.GodMode = v end)
-AddToggle("SpinBot", false, function(v) toggles.SpinBot = v end)
-AddToggle("Auto Collect Gun", false, function(v) toggles.AutoCollectGun = v end)
+-- ===== PROFESSIONAL GUI (Using LinoriaLib style) =====
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MM2RageHubV2"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = game:GetService("CoreGui")
 
--- Teleport buttons
-AddButton("🚀 TP to Murderer", function()
+-- Main frame with gradient style
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 380, 0, 520)
+frame.Position = UDim2.new(0.5, -190, 0.1, 0)
+frame.BackgroundColor3 = Color3.fromRGB(18, 18, 28)
+frame.BackgroundTransparency = 0.08
+frame.BorderSizePixel = 0
+frame.ClipsDescendants = true
+frame.Parent = screenGui
+
+-- Title bar
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 40)
+titleBar.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
+titleBar.BackgroundTransparency = 0.3
+titleBar.Parent = frame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 1, 0)
+title.BackgroundTransparency = 1
+title.Text = "🔥 RAGE HUB V2 🔥"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.Parent = titleBar
+
+-- Make draggable
+local dragging = false
+local dragInput, dragStart, startPos
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+titleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        if dragging then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end
+end)
+
+-- Scrollable content
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, 0, 1, -40)
+scrollFrame.Position = UDim2.new(0, 0, 0, 40)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollFrame.ScrollBarThickness = 6
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 70, 70)
+scrollFrame.Parent = frame
+
+local function AddSection(text)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.9, 0, 0, 25)
+    label.Position = UDim2.new(0.05, 0, 0, scrollFrame.CanvasSize.Y.Offset)
+    label.BackgroundTransparency = 1
+    label.Text = "─── " .. text .. " ───"
+    label.TextColor3 = Color3.fromRGB(255, 200, 100)
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.Parent = scrollFrame
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, scrollFrame.CanvasSize.Y.Offset + 30)
+end
+
+local function AddToggle(text, key, default)
+    local y = scrollFrame.CanvasSize.Y.Offset
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.9, 0, 0, 32)
+    btn.Position = UDim2.new(0.05, 0, 0, y)
+    btn.BackgroundColor3 = default and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(40, 40, 50)
+    btn.BackgroundTransparency = 0.2
+    btn.BorderSizePixel = 0
+    btn.Text = text .. (default and " [ON]" or " [OFF]")
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextScaled = true
+    btn.Font = Enum.Font.Gotham
+    btn.Parent = scrollFrame
+    toggles[key] = default
+    btn.MouseButton1Click:Connect(function()
+        toggles[key] = not toggles[key]
+        btn.BackgroundColor3 = toggles[key] and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(40, 40, 50)
+        btn.Text = text .. (toggles[key] and " [ON]" or " [OFF]")
+    end)
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, y + 37)
+end
+
+local function AddButton(text, callback, color)
+    local y = scrollFrame.CanvasSize.Y.Offset
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.43, 0, 0, 32)
+    btn.Position = UDim2.new(0.05, 0, 0, y)
+    btn.BackgroundColor3 = color or Color3.fromRGB(50, 50, 80)
+    btn.BackgroundTransparency = 0.2
+    btn.BorderSizePixel = 0
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextScaled = true
+    btn.Font = Enum.Font.Gotham
+    btn.Parent = scrollFrame
+    btn.MouseButton1Click:Connect(callback)
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, y + 37)
+    return btn
+end
+
+-- ===== BUILD UI =====
+AddSection("ESP")
+AddToggle("ESP Murderer", "ESPMurderer", false)
+AddToggle("ESP Sheriff", "ESPSheriff", false)
+AddToggle("ESP Innocent", "ESPInnocent", false)
+AddToggle("ESP Gun Drop", "ESPGun", false)
+
+AddSection("COMBAT")
+AddToggle("Auto Shoot Murderer", "AutoShoot", false)
+AddToggle("Silent Aim", "SilentAim", false)
+AddToggle("Kill All (as Murderer)", "KillAll", false)
+AddToggle("SpinBot", "SpinBot", false)
+
+AddSection("MOVEMENT")
+AddToggle("Noclip", "Noclip", false)
+AddToggle("Fly", "Fly", false)
+AddToggle("Infinite Jump", "InfiniteJump", false)
+
+AddSection("MISC")
+AddToggle("God Mode", "GodMode", false)
+AddToggle("Auto Farm Coins", "AutoFarm", false)
+AddToggle("Auto Collect Gun", "AutoCollectGun", false)
+
+AddSection("TELEPORT")
+AddButton("TP Murderer", function()
     if murderer and murderer.Character then
         LocalPlayer.Character.HumanoidRootPart.CFrame = murderer.Character.HumanoidRootPart.CFrame
     end
-end, Color3.fromRGB(200, 50, 50))
-
-AddButton("🚀 TP to Sheriff", function()
+end, Color3.fromRGB(200, 40, 40))
+AddButton("TP Sheriff", function()
     if sheriff and sheriff.Character then
         LocalPlayer.Character.HumanoidRootPart.CFrame = sheriff.Character.HumanoidRootPart.CFrame
     end
-end, Color3.fromRGB(50, 200, 50))
-
-AddButton("🚀 TP to Gun", function()
+end, Color3.fromRGB(40, 200, 40))
+AddButton("TP Gun", function()
     if gunDrop then
         LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(gunDrop.Position)
     end
-end, Color3.fromRGB(200, 200, 50))
-
-AddButton("🚀 TP to Lobby", function()
+end, Color3.fromRGB(200, 200, 40))
+AddButton("TP Lobby", function()
     LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, 100, 0)
 end, Color3.fromRGB(100, 100, 200))
-
-AddButton("🚀 TP to Map", function()
-    LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, 10, 0)
-end, Color3.fromRGB(100, 200, 200))
-
--- Update canvas size
-scrollFrame.CanvasSize = UDim2.new(0, 0, 0, yPos + 20)
 
 -- ===== ROLE DETECTION =====
 local function UpdateRoles()
@@ -170,24 +215,16 @@ local function UpdateRoles()
     for _, player in ipairs(Players:GetPlayers()) do
         local char = player.Character
         if char then
+            -- Check for knife (murderer)
             if char:FindFirstChild("Knife") or (char:FindFirstChild("Backpack") and char.Backpack:FindFirstChild("Knife")) then
                 murderer = player
                 if player == LocalPlayer then isMurderer = true end
             end
+            -- Check for gun (sheriff)
             if char:FindFirstChild("Gun") or (char:FindFirstChild("Backpack") and char.Backpack:FindFirstChild("Gun")) then
                 sheriff = player
                 if player == LocalPlayer then isSheriff = true end
             end
-        end
-    end
-    -- Check local player again
-    local localChar = LocalPlayer.Character
-    if localChar then
-        if localChar:FindFirstChild("Knife") or (localChar:FindFirstChild("Backpack") and localChar.Backpack:FindFirstChild("Knife")) then
-            isMurderer = true
-        end
-        if localChar:FindFirstChild("Gun") or (localChar:FindFirstChild("Backpack") and localChar.Backpack:FindFirstChild("Gun")) then
-            isSheriff = true
         end
     end
 end
@@ -199,8 +236,9 @@ local function CreateESP(player, color, text)
     local root = char:FindFirstChild("HumanoidRootPart")
     if not root then return end
     
+    -- Billboard
     local billboard = Instance.new("BillboardGui")
-    billboard.Size = UDim2.new(0, 250, 0, 60)
+    billboard.Size = UDim2.new(0, 250, 0, 50)
     billboard.AlwaysOnTop = true
     billboard.Parent = root
     
@@ -213,9 +251,10 @@ local function CreateESP(player, color, text)
     label.Font = Enum.Font.GothamBold
     label.Parent = billboard
     
+    -- Highlight
     local highlight = Instance.new("Highlight")
     highlight.FillColor = color
-    highlight.FillTransparency = 0.4
+    highlight.FillTransparency = 0.35
     highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
     highlight.Parent = char
     
@@ -321,8 +360,6 @@ local function Fly()
     if not root then return end
     
     local moveVector = Vector3.new(0, 0, 0)
-    -- Use touch controls via WASD emulation or just use simple up/down with Space/Shift detection
-    -- For mobile, we use the built-in movement keys if keyboard is attached, otherwise fallback to default.
     if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + Camera.CFrame.LookVector end
     if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - Camera.CFrame.LookVector end
     if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - Camera.CFrame.RightVector end
@@ -377,14 +414,20 @@ local function AutoCollectGun()
     LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(gunDrop.Position + Vector3.new(0, 2, 0))
 end
 
--- ===== COIN FARM =====
+-- ===== COIN FARM (SMOOTH) =====
 local function CoinFarm()
     if not toggles.AutoFarm then return end
     if not LocalPlayer.Character then return end
     
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("BasePart") and obj.Name == "Coin_Server" then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(obj.Position + Vector3.new(0, 2, 0))
+            local tween = TweenService:Create(
+                LocalPlayer.Character.HumanoidRootPart,
+                TweenInfo.new(0.15, Enum.EasingStyle.Linear),
+                {CFrame = CFrame.new(obj.Position + Vector3.new(0, 2, 0))}
+            )
+            tween:Play()
+            tween.Completed:Wait()
             task.wait(0.05)
         end
     end
@@ -392,7 +435,7 @@ end
 
 -- ===== MAIN LOOP =====
 local function MainLoop()
-    while wait(0.1) do
+    while task.wait(0.1) do
         UpdateRoles()
         FindGunDrop()
         
@@ -412,7 +455,6 @@ local function MainLoop()
             end
         end
         if toggles.ESPGun and gunDrop then
-            -- Simple indicator: highlight the gun part
             local highlight = Instance.new("Highlight")
             highlight.FillColor = Color3.fromRGB(255, 255, 0)
             highlight.FillTransparency = 0.3
@@ -433,13 +475,12 @@ local function MainLoop()
     end
 end
 
--- ===== KEYBINDS (optional) =====
+-- ===== KEYBINDS =====
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
     if input.KeyCode == Enum.KeyCode.F then
         toggles.AutoShoot = not toggles.AutoShoot
-        -- Update toggle button state? We'll skip for simplicity, user can use GUI
     end
     if input.KeyCode == Enum.KeyCode.X then
         toggles.KillAll = not toggles.KillAll
@@ -458,3 +499,5 @@ screenGui.AncestryChanged:Connect(function()
         ClearESP()
     end
 end)
+
+print("🔥 RAGE HUB V2 LOADED – ENJOY, BITCH")
